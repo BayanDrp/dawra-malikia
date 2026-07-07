@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+{% block title %}لوحة التحكم - {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-0"><i class="bi bi-speedometer2 ms-2"></i>لوحة التحكم</h2>
+  <span class="badge bg-success fs-6">{{ user.display_name or user.username }}</span>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-3">
+    <div class="card border-success">
+      <div class="card-body text-center">
+        <i class="bi bi-people display-5 text-success"></i>
+        <h3 class="mt-2 text-success">{{ total }}</h3>
+        <p class="text-secondary mb-0">إجمالي المسجلين</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-warning">
+      <div class="card-body text-center">
+        <i class="bi bi-clock-history display-5 text-warning"></i>
+        <h3 class="mt-2 text-warning">{{ pending }}</h3>
+        <p class="text-secondary mb-0">قيد الانتظار</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-info">
+      <div class="card-body text-center">
+        <i class="bi bi-check2-circle display-5 text-info"></i>
+        <h3 class="mt-2 text-info">{{ total - pending }}</h3>
+        <p class="text-secondary mb-0">تمت المعالجة</p>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card border-primary">
+      <div class="card-body text-center">
+        <i class="bi bi-download display-5 text-primary"></i>
+        <h3 class="mt-2 text-primary">
+          <a href="/api/admin/registrations/export.csv" class="text-decoration-none text-primary">CSV</a>
+        </h3>
+        <p class="text-secondary mb-0">تصدير</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Search & Filter -->
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="GET" action="/admin" class="row g-3 align-items-end">
+      <div class="col-md-5">
+        <label class="form-label small">بحث</label>
+        <input type="text" name="q" class="form-control" placeholder="اسم، بريد، هاتف، مدينة..." value="{{ search_q }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small">الحالة</label>
+        <select name="status" class="form-select">
+          <option value="">الكل</option>
+          <option value="pending" {{ 'selected' if filter_status == 'pending' }}>قيد الانتظار</option>
+          <option value="approved" {{ 'selected' if filter_status == 'approved' }}>مقبول</option>
+          <option value="rejected" {{ 'selected' if filter_status == 'rejected' }}>مرفوض</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search ms-1"></i>بحث</button>
+      </div>
+      <div class="col-md-2">
+        <a href="/admin" class="btn btn-outline-secondary w-100">إعادة تعيين</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span><i class="bi bi-list-check ms-2"></i>قائمة المسجلين</span>
+    <div class="d-flex align-items-center gap-2">
+      <span class="badge bg-secondary">{{ total }} مسجل</span>
+      <div class="dropdown" id="bulkDropdown" style="display:none;">
+        <button class="btn btn-sm btn-outline-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
+          <i class="bi bi-tools ms-1"></i>إجراءات على المحدد
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><button class="dropdown-item text-success" id="bulkApprove"><i class="bi bi-check-circle ms-2"></i>قبول المحدد</button></li>
+          <li><button class="dropdown-item text-danger" id="bulkReject"><i class="bi bi-x-circle ms-2"></i>رفض المحدد</button></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><button class="dropdown-item text-danger" id="bulkDelete"><i class="bi bi-trash ms-2"></i>حذف المحدد</button></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    {% if registrations %}
+    <div class="table-responsive">
+      <table class="table table-dark table-striped mb-0 align-middle" id="regTable">
+        <thead>
+          <tr>
+            <th style="width:40px;">
+              <input type="checkbox" class="form-check-input" id="selectAll">
+            </th>
+            <th>#</th>
+            <th>الاسم</th>
+            <th>البريد</th>
+            <th>الهاتف</th>
+            <th>الجنس</th>
+            <th>المدينة</th>
+            <th>الحالة</th>
+            <th>التاريخ</th>
+            <th>إجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in registrations %}
+          <tr data-id="{{ r.id }}">
+            <td>
+              <input type="checkbox" class="form-check-input row-checkbox" value="{{ r.id }}">
+            </td>
+            <td>{{ r.id }}</td>
+            <td>{{ r.full_name }}</td>
+            <td class="small">{{ r.email }}</td>
+            <td dir="ltr" class="small">{{ r.phone }}</td>
+            <td>{{ r.gender }}</td>
+            <td>{{ r.city }}</td>
+            <td>
+              <span class="badge status-badge bg-{{ 'warning' if r.status == 'pending' else 'success' if r.status == 'approved' else 'danger' }}">
+                {% if r.status == 'pending' %}قيد الانتظار{% elif r.status == 'approved' %}مقبول{% else %}مرفوض{% endif %}
+              </span>
+            </td>
+            <td class="text-nowrap small">{{ r.created_at.strftime('%Y-%m-%d') }}</td>
+            <td class="text-nowrap">
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                  <i class="bi bi-gear"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li>
+                    <button class="dropdown-item btn-status" data-id="{{ r.id }}" data-status="approved">
+                      <i class="bi bi-check-circle text-success ms-2"></i>قبول
+                    </button>
+                  </li>
+                  <li>
+                    <button class="dropdown-item btn-status" data-id="{{ r.id }}" data-status="rejected">
+                      <i class="bi bi-x-circle text-danger ms-2"></i>رفض
+                    </button>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <button class="dropdown-item btn-reply" data-id="{{ r.id }}" data-name="{{ r.full_name }}" data-email="{{ r.email }}">
+                      <i class="bi bi-envelope text-info ms-2"></i>إرسال رد
+                    </button>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <button class="dropdown-item btn-delete-reg" data-id="{{ r.id }}" data-name="{{ r.full_name }}">
+                      <i class="bi bi-trash text-danger ms-2"></i>حذف
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+          {% if r.notes %}
+          <tr class="table-active">
+            <td colspan="10" class="small text-secondary py-1">
+              <i class="bi bi-chat-dots ms-1"></i>{{ r.notes }}
+            </td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="text-center py-5 text-secondary">
+      <i class="bi bi-inbox display-6"></i>
+      <p class="mt-2">لا يوجد مسجلون{% if search_q %} مطابقون لبحثك{% endif %}.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Reply Modal -->
+<div class="modal fade" id="replyModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content bg-dark">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title"><i class="bi bi-envelope ms-2"></i>إرسال رد</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="replyForm">
+        <input type="hidden" id="replyId">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">إلى</label>
+            <input type="text" class="form-control" id="replyTo" disabled>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">الموضوع</label>
+            <input type="text" class="form-control" id="replySubject" required
+                   value="بخصوص التسجيل في الدورة العلمية الأولى">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">الرسالة</label>
+            <textarea class="form-control" id="replyMessage" rows="6" required
+                      placeholder="اكتب رسالتك هنا..."></textarea>
+          </div>
+          <div id="replyError" class="alert alert-danger d-none"></div>
+          <div id="replySuccess" class="alert alert-success d-none"></div>
+        </div>
+        <div class="modal-footer border-secondary">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+          <button type="submit" class="btn btn-primary" id="replyBtn">
+            <span id="replyBtnText"><i class="bi bi-send ms-1"></i>إرسال</span>
+            <span id="replyBtnSpinner" class="spinner-border spinner-border-sm d-none"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content bg-dark">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle ms-2"></i>تأكيد الحذف</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>هل أنت متأكد من حذف تسجيل <strong id="deleteName"></strong>؟</p>
+        <div id="deleteError" class="alert alert-danger d-none"></div>
+      </div>
+      <div class="modal-footer border-secondary">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+        <button type="button" class="btn btn-danger" id="confirmDelete">حذف</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+// --- Select All ---
+const selectAll = document.getElementById('selectAll');
+const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+const bulkDropdown = document.getElementById('bulkDropdown');
+
+function updateBulkVisibility() {
+  const checked = document.querySelectorAll('.row-checkbox:checked');
+  bulkDropdown.style.display = checked.length > 0 ? 'inline-block' : 'none';
+}
+
+if (selectAll) {
+  selectAll.addEventListener('change', () => {
+    rowCheckboxes.forEach(cb => cb.checked = selectAll.checked);
+    updateBulkVisibility();
+  });
+}
+rowCheckboxes.forEach(cb => {
+  cb.addEventListener('change', updateBulkVisibility);
+});
+
+function getSelectedIds() {
+  return Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => parseInt(cb.value));
+}
+
+// --- Single Status ---
+document.querySelectorAll('.btn-status').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    try {
+      await fetch(`/api/admin/registrations/${btn.dataset.id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: btn.dataset.status })
+      });
+      location.reload();
+    } finally {
+      btn.disabled = false;
+    }
+  });
+});
+
+// --- Bulk Actions ---
+document.getElementById('bulkApprove')?.addEventListener('click', () => doBulk('approve'));
+document.getElementById('bulkReject')?.addEventListener('click', () => doBulk('reject'));
+document.getElementById('bulkDelete')?.addEventListener('click', () => doBulk('delete'));
+
+async function doBulk(action) {
+  const ids = getSelectedIds();
+  if (!ids.length) return;
+  if (action === 'delete' && !confirm('هل أنت متأكد من حذف ' + ids.length + ' تسجيل؟')) return;
+  try {
+    const res = await fetch('/api/admin/registrations/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, action })
+    });
+    if (res.ok) location.reload();
+  } catch (err) {
+    alert('حدث خطأ');
+  }
+}
+
+// --- Delete Single ---
+let deleteTargetId = null;
+document.querySelectorAll('.btn-delete-reg').forEach(btn => {
+  btn.addEventListener('click', () => {
+    deleteTargetId = parseInt(btn.dataset.id);
+    document.getElementById('deleteName').textContent = btn.dataset.name;
+    document.getElementById('deleteError').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+  });
+});
+document.getElementById('confirmDelete').addEventListener('click', async () => {
+  if (!deleteTargetId) return;
+  try {
+    const res = await fetch(`/api/admin/registrations/${deleteTargetId}`, { method: 'DELETE' });
+    if (res.ok) location.reload();
+    else {
+      const data = await res.json();
+      document.getElementById('deleteError').textContent = data.detail;
+      document.getElementById('deleteError').classList.remove('d-none');
+    }
+  } catch (err) {
+    document.getElementById('deleteError').textContent = 'خطأ في الشبكة';
+    document.getElementById('deleteError').classList.remove('d-none');
+  }
+});
+
+// --- Reply ---
+document.querySelectorAll('.btn-reply').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('replyId').value = btn.dataset.id;
+    document.getElementById('replyTo').value = `${btn.dataset.name} (${btn.dataset.email})`;
+    document.getElementById('replyError').classList.add('d-none');
+    document.getElementById('replySuccess').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('replyModal')).show();
+  });
+});
+
+document.getElementById('replyForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('replyBtn');
+  const btnText = document.getElementById('replyBtnText');
+  const spinner = document.getElementById('replyBtnSpinner');
+  const errorEl = document.getElementById('replyError');
+  const successEl = document.getElementById('replySuccess');
+  btn.disabled = true;
+  btnText.textContent = 'جاري الإرسال...';
+  spinner.classList.remove('d-none');
+  errorEl.classList.add('d-none');
+  successEl.classList.add('d-none');
+  try {
+    const res = await fetch(`/api/admin/registrations/${document.getElementById('replyId').value}/reply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subject: document.getElementById('replySubject').value,
+        message: document.getElementById('replyMessage').value
+      })
+    });
+    const data = await res.json();
+    successEl.textContent = data.message;
+    successEl.classList.remove('d-none');
+    document.getElementById('replyMessage').value = '';
+  } catch (err) {
+    errorEl.textContent = 'خطأ في الشبكة. حاول مرة أخرى.';
+    errorEl.classList.remove('d-none');
+  } finally {
+    btn.disabled = false;
+    btnText.innerHTML = '<i class="bi bi-send ms-1"></i>إرسال';
+    spinner.classList.add('d-none');
+  }
+});
+</script>
+{% endblock %}

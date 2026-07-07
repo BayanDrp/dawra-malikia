@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Register - {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5 col-lg-4">
+    <div class="card shadow">
+      <div class="card-body p-4">
+        <div class="text-center mb-4">
+          <i class="bi bi-person-plus display-4 text-primary"></i>
+          <h3 class="mt-2">Create Account</h3>
+          <p class="text-secondary">Join {{ APP_NAME }}</p>
+        </div>
+
+        <form id="registerForm">
+          <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" class="form-control" id="username" required minlength="3" autocomplete="username">
+            <div class="form-text">Letters, numbers, and underscores only.</div>
+          </div>
+          <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" required autocomplete="email">
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" class="form-control" id="password" required minlength="8" autocomplete="new-password">
+            <div class="form-text">At least 8 characters.</div>
+          </div>
+          <div class="mb-3">
+            <label for="confirmPassword" class="form-label">Confirm Password</label>
+            <input type="password" class="form-control" id="confirmPassword" required autocomplete="new-password">
+          </div>
+          <div id="registerError" class="alert alert-danger d-none"></div>
+          <button type="submit" class="btn btn-primary w-100" id="registerBtn">
+            <span id="registerBtnText">Create Account</span>
+            <span id="registerBtnSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+          </button>
+        </form>
+
+        <div class="text-center mt-3">
+          <span class="text-secondary small">Already have an account?</span>
+          <a href="/login" class="text-decoration-none small">Sign in</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('registerBtn');
+  const btnText = document.getElementById('registerBtnText');
+  const spinner = document.getElementById('registerBtnSpinner');
+  const errorEl = document.getElementById('registerError');
+  const password = document.getElementById('password').value;
+  const confirm = document.getElementById('confirmPassword').value;
+  if (password !== confirm) {
+    errorEl.textContent = 'Passwords do not match.';
+    errorEl.classList.remove('d-none');
+    return;
+  }
+  btn.disabled = true;
+  btnText.textContent = 'Creating account...';
+  spinner.classList.remove('d-none');
+  errorEl.classList.add('d-none');
+  try {
+    const res = await fetch('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: document.getElementById('username').value,
+        email: document.getElementById('email').value,
+        password: password
+      })
+    });
+    if (res.ok) {
+      window.location.href = '/login?registered=1';
+    } else {
+      const data = await res.json();
+      errorEl.textContent = data.detail || 'Registration failed';
+      errorEl.classList.remove('d-none');
+    }
+  } catch (err) {
+    errorEl.textContent = 'Network error. Please try again.';
+    errorEl.classList.remove('d-none');
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = 'Create Account';
+    spinner.classList.add('d-none');
+  }
+});
+</script>
+{% endblock %}

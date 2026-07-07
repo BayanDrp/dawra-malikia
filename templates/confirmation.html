@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>تم التسجيل - {{ APP_NAME }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/static/css/landing.css" rel="stylesheet">
+  <style>
+    .confirmation-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.1));
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto;
+      font-size: 2.5rem;
+      color: #34d399;
+    }
+  </style>
+</head>
+<body class="bg-dark">
+  <div class="container min-vh-100 d-flex align-items-center justify-content-center">
+    <div class="text-center">
+      <div class="confirmation-icon mb-4">
+        <i class="bi bi-check-lg"></i>
+      </div>
+      <h2 class="text-white mb-3">تم التسجيل بنجاح!</h2>
+      {% if name %}
+      <p class="text-secondary mb-1">مرحباً بك <strong class="text-light">{{ name }}</strong></p>
+      {% endif %}
+      <p class="text-secondary mb-1">تم استلام طلب تسجيلك في الدورة العلمية الأولى في الفقه المالكي.</p>
+      <p class="text-secondary mb-4">سيتم التواصل معك قريباً لتأكيد مشاركتك.</p>
+      <div class="d-flex justify-content-center">
+        <a href="/" class="btn btn-outline-light">
+          <i class="bi bi-house ms-2"></i>العودة للصفحة الرئيسية
+        </a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

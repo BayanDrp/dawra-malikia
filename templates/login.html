@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}تسجيل الدخول - {{ APP_NAME }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5 col-lg-4">
+    <div class="card shadow">
+      <div class="card-body p-4">
+        <div class="text-center mb-4">
+          <i class="bi bi-shield-lock display-4 text-primary"></i>
+          <h3 class="mt-2">تسجيل الدخول</h3>
+          <p class="text-secondary">لوحة تحكم الإدارة</p>
+        </div>
+
+        <form id="loginForm">
+          <div class="mb-3">
+            <label for="email" class="form-label">البريد الإلكتروني</label>
+            <input type="email" class="form-control" id="email" required autocomplete="email">
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">كلمة المرور</label>
+            <input type="password" class="form-control" id="password" required autocomplete="current-password">
+          </div>
+          <div id="loginError" class="alert alert-danger d-none"></div>
+          <button type="submit" class="btn btn-primary w-100" id="loginBtn">
+            <span id="loginBtnText">تسجيل الدخول</span>
+            <span id="loginBtnSpinner" class="spinner-border spinner-border-sm d-none" role="status"></span>
+          </button>
+        </form>
+
+        <div class="text-center mt-3">
+          <a href="/" class="text-decoration-none small"><i class="bi bi-arrow-right ms-1"></i>العودة إلى الصفحة الرئيسية</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  const btnText = document.getElementById('loginBtnText');
+  const spinner = document.getElementById('loginBtnSpinner');
+  const errorEl = document.getElementById('loginError');
+  btn.disabled = true;
+  btnText.textContent = 'جاري تسجيل الدخول...';
+  spinner.classList.remove('d-none');
+  errorEl.classList.add('d-none');
+  try {
+    const res = await fetch('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value
+      })
+    });
+    if (res.ok) {
+      window.location.href = '/admin';
+    } else {
+      const data = await res.json();
+      errorEl.textContent = data.detail || 'فشل تسجيل الدخول';
+      errorEl.classList.remove('d-none');
+    }
+  } catch (err) {
+    errorEl.textContent = 'خطأ في الشبكة. حاول مرة أخرى.';
+    errorEl.classList.remove('d-none');
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = 'تسجيل الدخول';
+    spinner.classList.add('d-none');
+  }
+});
+</script>
+{% endblock %}
