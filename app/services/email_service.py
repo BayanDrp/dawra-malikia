@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 from app.config import settings
 from app.utils.logging import get_logger
@@ -10,26 +9,26 @@ from app.utils.sanitize import h
 
 logger = get_logger(__name__)
 
+FROM_EMAIL = settings.ADMIN_EMAIL or "noreply@example.com"
+FROM_NAME = settings.APP_NAME
+
 
 def send_email(to_email: str, subject: str, html_body: str) -> bool:
-    if not all([settings.SMTP_HOST, settings.SMTP_USER, settings.SMTP_PASSWORD]):
-        logger.warning("SMTP not configured — skipping email to %s", to_email)
+    if not settings.SENDGRID_API_KEY:
+        logger.warning("SENDGRID_API_KEY not set — skipping email to %s", to_email)
         return False
 
     try:
-        msg = MIMEMultipart("alternative")
-        msg["From"] = f"{settings.SMTP_FROM_NAME or settings.APP_NAME} <{settings.SMTP_FROM_EMAIL or settings.SMTP_USER}>"
-        msg["To"] = to_email
-        msg["Subject"] = subject
-        msg.attach(MIMEText(html_body, "html"))
+        message = Mail(
+            from_email=(FROM_EMAIL, FROM_NAME),
+            to_emails=to_email,
+            subject=subject,
+            html_content=html_body,
+        )
+        sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
+        response = sg.send(message)
 
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
-            if settings.SMTP_USE_TLS:
-                server.starttls()
-            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-            server.send_message(msg)
-
-        logger.info("Email sent to %s — subject: %s", to_email, subject)
+        logger.info("Email sent to %s — subject: %s (status: %s)", to_email, subject, response.status_code)
         return True
     except Exception as e:
         logger.error("Failed to send email to %s: %s", to_email, e)

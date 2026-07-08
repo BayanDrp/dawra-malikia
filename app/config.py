@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     SMTP_FROM_NAME: str | None = None
     SMTP_USE_TLS: bool = True
 
+    SENDGRID_API_KEY: str | None = None
     ADMIN_EMAIL: str | None = None
     SITE_URL: str = "http://localhost:8000"
 
